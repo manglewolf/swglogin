@@ -9,6 +9,8 @@ import pathlib
 import logging
 from logging.handlers import RotatingFileHandler
 from flask import jsonify
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 
 import os
@@ -29,6 +31,30 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+
+    # Configure rate limiter: default key is remote address
+    limiter = Limiter(
+        key_func=get_remote_address,
+        default_limits=[],  # we'll set per-route limits explicitly
+        app=app,
+    )
+
+
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        # Return JSON for API posts and flash+redirect for form posts
+        # If the request accepts JSON or is to /auth.php, return JSON
+        try:
+            if request.path == '/auth.php' or request.is_json:
+                return jsonify({'message': 'Too many requests, please try again later.'}), 429
+        except Exception:
+            pass
+        # Fallback: flash and redirect to login form
+        try:
+            flash('Too many requests. Please wait a minute and try again.', 'error')
+            return redirect(url_for('form_login'))
+        except Exception:
+            return jsonify({'message': 'Too many requests'}), 429
 
 
 def check_port(host: str, port: int, timeout: float = 5.0) -> bool:
