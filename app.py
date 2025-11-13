@@ -40,6 +40,9 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=[],  # we'll set per-route limits explicitly
     app=app,
+    # Use in-memory storage by default for development and CI; set a production
+    # storage backend (e.g. Redis) via configuration when deploying.
+    storage_uri="memory://",
 )
 
 if not logger.handlers:
@@ -109,6 +112,13 @@ def index():
     # Database credentials are handled by includes.db_connect; just call the helper.
     online_players = get_online_player_count()
 
+    # Log access to index with useful diagnostics (do not log sensitive data)
+    try:
+        logger.info('Index viewed by user=%s ip=%s statuses=%s online_players=%s',
+                    user or '<anonymous>', request.remote_addr or '', statuses, online_players)
+    except Exception:
+        # Logging must not break the request on failure
+        pass
     return render_template(
         "index.html", user=user, statuses=statuses, online_players=online_players
     )
@@ -210,12 +220,6 @@ def auth_php():
     password = request.form.get("user_password", "")
     ip = request.form.get("ip", "")
     station_id = request.form.get("stationID", "")
-
-    # Connect to DB and fetch user
-    db_host = os.environ.get("DB_HOST", "127.0.0.1")
-    db_name = os.environ.get("DB_NAME", "swgusers")
-    db_user = os.environ.get("DB_USER", "swg")
-    db_pass = os.environ.get("DB_PASS", "Enterprise1701!")
 
     # Log the attempt (without recording the raw password)
     logger.info(
