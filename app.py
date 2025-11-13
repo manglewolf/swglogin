@@ -182,6 +182,7 @@ def checkhashSSHA(salt: str, password: str) -> str:
 
 
 @app.route('/auth.php', methods=['POST'])
+@limiter.limit("5 per minute")
 def auth_php():
     # Accepts POST fields: user_name, user_password, ip, stationID
     username = request.form.get('user_name', '')
@@ -249,6 +250,7 @@ def music(filename: str):
 
 
 @app.route('/post_login', methods=['POST'])
+@limiter.limit("5 per minute")
 def post_login():
     # Reuse auth logic to validate credentials
     username = request.form.get('username', '')
