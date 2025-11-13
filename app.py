@@ -26,7 +26,7 @@ from includes.db_connect import cursor, get_connection
 app = Flask(__name__)
 # Load secret key from environment for production; fallback to a generated token for dev.
 app.secret_key = os.environ.get(
-    "FLASK_SECRET_KEY", "u8V7fX9s2aQy4mLr6ZpTj3NqBvC1hKs0_eG5wRzY6oP8dS9xU2cF4nM7bH0tV1"
+    "FLASK_SECRET_KEY", "dev_secret_key_change_me_in_production"
 )
 
 # Configure logging
@@ -34,6 +34,14 @@ root = pathlib.Path(__file__).resolve().parent
 logs_dir = root / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger("swglogin")
+
+# Configure rate limiter: default key is remote address (always create so `limiter` is bound)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=[],  # we'll set per-route limits explicitly
+    app=app,
+)
+
 if not logger.handlers:
     handler = RotatingFileHandler(
         logs_dir / "auth.log", maxBytes=5 * 1024 * 1024, backupCount=3
@@ -43,31 +51,24 @@ if not logger.handlers:
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
 
-    # Configure rate limiter: default key is remote address
-    limiter = Limiter(
-        key_func=get_remote_address,
-        default_limits=[],  # we'll set per-route limits explicitly
-        app=app,
-    )
-
-    @app.errorhandler(429)
-    def ratelimit_handler(e):
-        # Return JSON for API posts and flash+redirect for form posts
-        # If the request accepts JSON or is to /auth.php, return JSON
-        try:
-            if request.path == "/auth.php" or request.is_json:
-                return (
-                    jsonify({"message": "Too many requests, please try again later."}),
-                    429,
-                )
-        except Exception:
-            pass
-        # Fallback: flash and redirect to login form
-        try:
-            flash("Too many requests. Please wait a minute and try again.", "error")
-            return redirect(url_for("form_login"))
-        except Exception:
-            return jsonify({"message": "Too many requests"}), 429
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    # Return JSON for API posts and flash+redirect for form posts
+    # If the request accepts JSON or is to /auth.php, return JSON
+    try:
+        if request.path == "/auth.php" or request.is_json:
+            return (
+                jsonify({"message": "Too many requests, please try again later."}),
+                429,
+            )
+    except Exception:
+        pass
+    # Fallback: flash and redirect to login form
+    try:
+        flash("Too many requests. Please wait a minute and try again.", "error")
+        return redirect(url_for("form_login"))
+    except Exception:
+        return jsonify({"message": "Too many requests"}), 429
 
 
 def check_port(host: str, port: int, timeout: float = 5.0) -> bool:
