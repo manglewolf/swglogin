@@ -1,0 +1,52 @@
+logs/auth.log
+__pycache__/app.cpython-311.pyc
+__pycache__/test.cpython-311-pytest-9.0.1.pyc
+
+# Python common
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+venv.bak/
+
+# Packaging
+pip-wheel-metadata/
+share/python-wheels/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+
+# Pyright / mypy
+.mypy_cache/
+
+# dotenv
+.env
+.env.*
+
+# VSCode
+.vscode/
+
+# IDEs
+.idea/
+.ropeproject/
+
+# macOS
+.DS_Store
+
