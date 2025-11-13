@@ -282,7 +282,7 @@ def images(filename: str):
 @app.route("/music/<path:filename>")
 def music(filename: str):
     root = pathlib.Path(__file__).resolve().parent
-    return send_from_directory(root / "music", filename)
+    return send_from_directory(root / "static/music", filename)
 
 
 @app.route("/post_login", methods=["POST"])
