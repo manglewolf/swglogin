@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Create a New Account</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script type="text/javascript">
+    function BothFieldsIdenticalCaseSensitive() {
+      var one = document.NewUser.realpassword.value;
+      var another = document.NewUser.confirmpassword.value;
+      if (one == another) { return true; }
+      alert("Password fields must be the same.");
+      return false;
+    }
+  </script>
+  <style>
+    body  {
+    background-image: url("{{ url_for('images', filename='vaderdeathstar.jpg') }}");
+        background-color: black;
+        background-repeat: no-repeat;
+        background-attachment: fixed; 
+        background-position: center;
+        background-size: cover;
+        font-family: arial, Gill Sans, sans-serif;
+    }
+    a:link { color: green; text-decoration: none; }
+    a:visited { color: orange; text-decoration: none; }
+    a:hover { color: red; text-decoration: underline; }
+    a:active { color: yellow; text-decoration: underline; }
+    table { margin: 2rem auto; }
+    td { padding: 0.25rem 0.5rem; }
+    .white { color: #FFFFFF; }
+  </style>
+</head>
+<body>
+  <p style="text-align:center"><b><a href="/index.php">Home</a></b></p>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <ul style="list-style:none; text-align:center; padding:0;">
+        {% for category, msg in messages %}
+          <li class="{{ category }}">{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+
+  <form name="NewUser" action="/newuserpost" method="post" onsubmit="return BothFieldsIdenticalCaseSensitive();">
+    <center><h2 style="color:white">REGISTER AN ACCOUNT</h2></center>
+    <table>
+      <tr>
+        <td class="white"><b>Account Name</b></td>
+        <td><input type="text" name="useraccountname"/></td>
+      </tr>
+      <tr>
+        <td class="white"><b>Password</b></td>
+        <td><input type="password" name="realpassword"/></td>
+      </tr>
+      <tr>
+        <td class="white"><b>Confirm Password</b></td>
+        <td><input type="password" name="confirmpassword"/></td>
+      </tr>
+      <tr>
+        <td class="white"><b>Access Level</b></td>
+        <td>
+          <select name="accesslevel">
+            <option value="standard">Standard</option>
+          </select>
+        </td>
+      </tr>
+      <tr>
+        <td></td>
+        <td>
+          <input type="hidden" name="action" value="create"/>
+          <input type="submit" value="Submit"/>
+        </td>
+      </tr>
+    </table>
+  </form>
+
+  <br />
+  <center><a href="#" download><font size="+2"><b><u>>>Download Client<<</u></b></font></a></center>
+</body>
+</html>
