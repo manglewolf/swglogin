@@ -1,83 +1,77 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Create a New Account</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script type="text/javascript">
-    function BothFieldsIdenticalCaseSensitive() {
-      var one = document.NewUser.realpassword.value;
-      var another = document.NewUser.confirmpassword.value;
-      if (one == another) { return true; }
-      alert("Password fields must be the same.");
-      return false;
+  <title>Create a New Account</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stylesheet.css') }}">
+</head>
+<body class="form-page registration-page">
+  <div class="container registration-form-container">
+    <header class="form-header">
+      <h1>Register an Account</h1>
+    </header>
+
+    <main class="form-main">
+      <nav class="form-nav">
+        <a href="/index.php" class="btn btn-secondary">Back to Home</a>
+      </nav>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="messages">
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ category }}">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <article class="registration-form-wrapper">
+        <form id="registration-form" action="/newuserpost" method="post" class="registration-form">
+          <div class="form-group">
+            <label for="useraccountname">Account Name</label>
+            <input type="text" id="useraccountname" name="useraccountname" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="realpassword">Password</label>
+            <input type="password" id="realpassword" name="realpassword" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="confirmpassword">Confirm Password</label>
+            <input type="password" id="confirmpassword" name="confirmpassword" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="accesslevel">Access Level</label>
+            <select id="accesslevel" name="accesslevel">
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+          <input type="hidden" name="action" value="create">
+          <button type="submit" class="btn btn-primary">Create Account</button>
+        </form>
+
+        <div class="form-footer">
+          <a href="#" class="btn btn-secondary download-link">Download Client</a>
+        </div>
+      </article>
+    </main>
+  </div>
+
+  <script>
+    // Validate password match on form submission
+    const form = document.getElementById('registration-form');
+    if (form) {
+      form.addEventListener('submit', (e) => {
+        const password = document.getElementById('realpassword').value;
+        const confirm = document.getElementById('confirmpassword').value;
+        if (password !== confirm) {
+          e.preventDefault();
+          alert('Password fields must be the same.');
+          return false;
+        }
+      });
     }
   </script>
-  <style>
-    body  {
-    background-image: url("{{ url_for('images', filename='vaderdeathstar.jpg') }}");
-        background-color: black;
-        background-repeat: no-repeat;
-        background-attachment: fixed; 
-        background-position: center;
-        background-size: cover;
-        font-family: arial, Gill Sans, sans-serif;
-    }
-    a:link { color: green; text-decoration: none; }
-    a:visited { color: orange; text-decoration: none; }
-    a:hover { color: red; text-decoration: underline; }
-    a:active { color: yellow; text-decoration: underline; }
-    table { margin: 2rem auto; }
-    td { padding: 0.25rem 0.5rem; }
-    .white { color: #FFFFFF; }
-  </style>
-</head>
-<body>
-  <p style="text-align:center"><b><a href="/index.php">Home</a></b></p>
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <ul style="list-style:none; text-align:center; padding:0;">
-        {% for category, msg in messages %}
-          <li class="{{ category }}">{{ msg }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-  {% endwith %}
-
-  <form name="NewUser" action="/newuserpost" method="post" onsubmit="return BothFieldsIdenticalCaseSensitive();">
-    <center><h2 style="color:white">REGISTER AN ACCOUNT</h2></center>
-    <table>
-      <tr>
-        <td class="white"><b>Account Name</b></td>
-        <td><input type="text" name="useraccountname"/></td>
-      </tr>
-      <tr>
-        <td class="white"><b>Password</b></td>
-        <td><input type="password" name="realpassword"/></td>
-      </tr>
-      <tr>
-        <td class="white"><b>Confirm Password</b></td>
-        <td><input type="password" name="confirmpassword"/></td>
-      </tr>
-      <tr>
-        <td class="white"><b>Access Level</b></td>
-        <td>
-          <select name="accesslevel">
-            <option value="standard">Standard</option>
-          </select>
-        </td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>
-          <input type="hidden" name="action" value="create"/>
-          <input type="submit" value="Submit"/>
-        </td>
-      </tr>
-    </table>
-  </form>
-
-  <br />
-  <center><a href="#" download><font size="+2"><b><u>>>Download Client<<</u></b></font></a></center>
 </body>
 </html>

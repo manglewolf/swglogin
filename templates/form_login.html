@@ -1,30 +1,34 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SWG:Source | Login</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    /* Styles copied from original */
-    div.container { width: 90%; border: none; }
-    header, footer { padding: 1em; color: white; text-align: center; }
-    nav { float: left; max-width: 160px; margin: 0; padding: 1em; }
-    nav ul { list-style-type: none; padding: 0; }
-    article { margin-left: 170px; padding: 1em; overflow: hidden; }
-  body  { background-color: black; background-image: url("{{ url_for('images', filename='mfalcon.jpg') }}"); background-repeat: no-repeat; background-attachment: fixed; background-position: center; background-size: cover; }
-    a:link { color: green; text-decoration: none; }
-    a:visited { color: orange; text-decoration: none; }
-    a:hover { color: red; text-decoration: underline; }
-    a:active { color: yellow; text-decoration: underline; }
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stylesheet.css') }}">
 </head>
-<body>
-  <center><img src="{{ url_for('images', filename='swgsource.png') }}" alt="" width="200"/></center>
-  <form method="post" action="/post_login">
-    <center>
-      <b><p style="color:white;">Username: <input name="username" type="text"></p></b>
-      <b><p style="color:white;">Password: <input name="password" type="password"></p></b>
-      <input name="submit" type="submit" value="Submit">
-    </center>
-  </form>
+<body class="form-page">
+  <div class="container login-form-container">
+    <header class="form-header">
+      <img src="{{ url_for('images', filename='swgsource.png') }}" alt="SWG Source Logo" class="logo">
+    </header>
+
+    <main class="form-main">
+      <article class="login-form-wrapper">
+        <h1>Account Login</h1>
+        <form method="post" action="/post_login" class="login-form">
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required aria-required="true">
+          </div>
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required aria-required="true">
+          </div>
+          <button type="submit" class="btn btn-primary">Login</button>
+        </form>
+        <p class="form-footer-link"><a href="/index.php">Back to Home</a></p>
+      </article>
+    </main>
+  </div>
 </body>
 </html>

@@ -1,4 +1,496 @@
-body { font-family: arial, "gill-sans" }
-body { text-align: center }
-h1 { text-transform: uppercase }
-h2 { font-family: arial; color: white }
+/* Global Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, 'Gill Sans', sans-serif;
+  background-color: #000;
+  background-image: url("/images/stormtrooper.jpg");
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-position: center;
+  background-size: cover;
+  color: #fff;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Links */
+a {
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:link {
+  color: #00cc00; /* Green */
+}
+
+a:visited {
+  color: #ff8800; /* Orange */
+}
+
+a:hover {
+  color: #ff0000; /* Red */
+  text-decoration: underline;
+}
+
+a:active {
+  color: #ffff00; /* Yellow */
+  text-decoration: underline;
+}
+
+/* Container Layout */
+.container {
+  width: 90%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* Header & Hero Section */
+header {
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 2rem;
+  padding: 2rem 0;
+}
+
+.sidebar-nav {
+  flex-shrink: 0;
+}
+
+.sidebar-nav ul {
+  list-style: none;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sidebar-nav ul li {
+  padding: 0.5rem 0;
+}
+
+.sidebar-nav a {
+  font-weight: bold;
+}
+
+.user-greeting {
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.useful-links {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.useful-links h3 {
+  font-size: 0.95rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.useful-links ul {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+
+.hero h1 {
+  font-size: 3rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.hero h2 {
+  font-size: 1.75rem;
+  margin: 1rem 0;
+  color: #fff;
+}
+
+.hero p {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 2rem;
+  margin-top: 1.5rem;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background-color: #00cc00;
+  color: #000;
+}
+
+.btn-primary:hover {
+  background-color: #00ff00;
+  text-decoration: none;
+  transform: scale(1.05);
+}
+
+/* Main Content */
+main {
+  flex: 1;
+}
+
+article {
+  margin-left: 160px;
+  padding: 2rem;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+}
+
+/* Status Section */
+.status-section h2 {
+  font-size: 1.5rem;
+  text-transform: uppercase;
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.status-item {
+  background-color: rgba(255, 255, 255, 0.1);
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.status-item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.status-item h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.status-indicator {
+  font-size: 1.25rem;
+  font-weight: bold;
+  padding: 1rem;
+  border-radius: 4px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.status-indicator.online {
+  background-color: #00cc00;
+  color: #000;
+  border: 2px solid #00ff00;
+}
+
+.status-indicator.offline {
+  background-color: #cc0000;
+  color: #fff;
+  border: 2px solid #ff0000;
+}
+
+.online-players {
+  text-align: center;
+  padding: 2rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Forms Styling */
+.form-page {
+  background-color: #000;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.form-page.registration-page {
+  background-image: url("/images/vaderdeathstar.jpg");
+}
+
+.form-page.password-page {
+  background-image: url("/images/grevious.jpg");
+}
+
+body:has(.login-form-container) {
+  background-image: url("/images/mfalcon.jpg");
+}
+
+.login-form-container,
+.registration-form-container,
+.password-form-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.form-header img.logo {
+  max-width: 250px;
+  height: auto;
+  filter: drop-shadow(0 0 10px rgba(0, 0, 0, 0.8));
+}
+
+.form-header h1 {
+  font-size: 2rem;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.form-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+.form-nav {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-form-wrapper,
+.registration-form-wrapper,
+.password-form-wrapper {
+  background-color: rgba(0, 0, 0, 0.75);
+  padding: 2.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.login-form-wrapper h1,
+.registration-form-wrapper h1,
+.password-form-wrapper h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.login-form,
+.registration-form,
+.password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.form-group input,
+.form-group select {
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 1rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #00cc00;
+  background-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 8px rgba(0, 204, 0, 0.4);
+}
+
+.form-group input::placeholder {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Select styling */
+.form-group select {
+  cursor: pointer;
+}
+
+.form-group select option {
+  background-color: #333;
+  color: #fff;
+}
+
+.btn-secondary {
+  background-color: #666;
+  color: #fff;
+}
+
+.btn-secondary:hover {
+  background-color: #888;
+  text-decoration: none;
+}
+
+.messages {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.alert {
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.alert-error {
+  background-color: rgba(204, 0, 0, 0.3);
+  color: #ff6b6b;
+  border: 1px solid #cc0000;
+}
+
+.alert-success {
+  background-color: rgba(0, 204, 0, 0.3);
+  color: #66ff66;
+  border: 1px solid #00cc00;
+}
+
+.form-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.form-footer-link {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.form-footer-link a,
+.form-footer a {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
+.download-link {
+  background-color: rgba(0, 204, 0, 0.2);
+  border: 2px solid #00cc00;
+  color: #00cc00;
+  padding: 0.75rem 1.5rem;
+}
+
+.download-link:hover {
+  background-color: #00cc00;
+  color: #000;
+  text-decoration: none;
+}
+
+/* Responsive Forms */
+@media (max-width: 600px) {
+  .login-form-wrapper,
+  .registration-form-wrapper,
+  .password-form-wrapper {
+    min-width: 90%;
+    max-width: 100%;
+    padding: 1.5rem;
+  }
+
+  .form-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .form-header img.logo {
+    max-width: 150px;
+  }
+}
+
+.online-players h3 {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.player-count {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #00cc00;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  header {
+    grid-template-columns: 1fr;
+    padding: 1rem 0;
+  }
+
+  article {
+    margin-left: 0;
+    padding: 1.5rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero h2 {
+    font-size: 1.25rem;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .sidebar-nav {
+    display: none; /* Hide sidebar on mobile, or show as dropdown/hamburger */
+  }
+}

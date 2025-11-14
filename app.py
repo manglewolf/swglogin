@@ -98,7 +98,7 @@ def get_online_player_count() -> Optional[int]:
 @app.route("/index.php")
 def index():
     # Session username (mirrors PHP session_start + $_SESSION['user'])
-    user = session.get("user")
+    user = session.get("username")
 
     # Server/port checks (mirrors fsockopen checks in the PHP)
     server = "192.168.204.15"

@@ -1,95 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>SWG Source Server Main Page</title>
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='stylesheet.css') }}">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<script type="text/javascript">
-function BothFieldsIdenticalCaseSensitive() {
-  var one = document.NewUser.realpassword.value;
-  var another = document.NewUser.confirmpassword.value;
-  if(one == another) { return true; }
-  alert("Password fields must be the same.");
-  return false;
-}
-</script>
-<style>
-/* Inline styles copied from original for layout parity */
-div.container { width: 90%; border: none; }
-header, footer { padding: 1em; color: white; text-align: center; }
-nav { float: left; max-width: 160px; margin: 0; padding: 1em; }
-nav ul { list-style-type: none; padding: 0; }
-nav ul a { text-decoration: none; }
-article { margin-left: 170px; padding: 1em; overflow: hidden; }
-body  { background-color: black; background-image: url("{{ url_for('images', filename='stormtrooper.jpg') }}"); background-repeat: no-repeat; background-attachment: fixed; background-position: center; background-size: cover; }
-a:link { color: green; text-decoration: none; }
-a:visited { color: orange; text-decoration: none; }
-a:hover { color: red; text-decoration: underline; }
-a:active { color: yellow; text-decoration: underline; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SWG Source Server Main Page</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='stylesheet.css') }}">
 </head>
 <body>
 
-<div class="container">
+  <div class="container">
+    <header>
+      <nav class="sidebar-nav">
+        <ul>
+          {% if user %}
+            <li class="user-greeting">Hello {{ user }}</li>
+          {% endif %}
+          <li><a href="/index.php">Home</a></li>
+          {% if user %}
+            <li><a href="/changepassword">Change Account Password</a></li>
+            <li><a href="/logout">Logout</a></li>
+          {% else %}
+            <li><a href="/form_login">Account Management</a></li>
+          {% endif %}
+        </ul>
+        <section class="useful-links">
+          <h3>Useful Links</h3>
+          <ul>
+            <li><a href="http://www.swgsource.com" target="_blank" rel="noopener noreferrer">SWG Source</a></li>
+            <li><a href="https://discordapp.com/channels/366560008068005892/366560008608940035" target="_blank" rel="noopener noreferrer">SWG Source Discord Server</a></li>
+          </ul>
+        </section>
+      </nav>
 
-<header>
-
-<nav>
-  <ul>
-    {% if user %}
-      <li>{{ 'Hello ' + user }}</li>
-    {% endif %}
-    <li><b><a href="/index.php">Home</a></b></li>
-    {% if user %}
-      <li><b><a href="/changepassword">Change Account Password</a></b></li><br>
-      <li><b><a href="/logout">Logout</a></b></li><br>
-    {% else %}
-      <li><b><a href="/form_login">Account Management</a></b></li><br>
-    {% endif %}
-    <p><b><u>Useful Links</u></b></p>
-    <li><b><a href="http://www.swgsource.com">SWG Source</a></b></li>
-    <li><b><a href="https://discordapp.com/channels/366560008068005892/366560008608940035">SWG Source Discord Server</a></b></li>
-  </ul>
-</nav>
-    
-<audio muted autoplay id="myaudio">
-  <source src="{{ url_for('music', filename='Star Wars Main Theme.mp3') }}">
-</audio>
-    
-<script>
-  var audio = document.getElementById("myaudio");
-  audio.volume = 0.3;
-</script>
-   <center><h1><b>WELCOME</b></h1>
-   <p><b>to</b></p>
-   <p><b>SWG Source Server</b></p>
-   <p><b>This is the Login frontend for your NGE server</b></p>
-   <p><b>Click below to Create a New Account</b></p>
-   <p><b><a href="/addnewuser"><u>Register an Account</u></a></b></p></center>
-</header>
-  
-
-<article>
-    <p></p>
-    <p></p>
-    <p></p>
-</article>    
-
-<h1><b><font color='#FFFFFF'><u>Server Status</u></font></b></h1>
-    <div class="status">
-        <div>
-        <table align="center">
-        <tr><td><p><center><strong><font color='#FFFFFF'>Login Server: </font></strong>{% if statuses.login %}<font color="green">Online</font>{% else %}<font color="red">Offline</font>{% endif %}</p></center></td></tr>
-        <tr><td><p><center><strong><font color='#FFFFFF'>Game Server: </font></strong>{% if statuses.game %}<font color="green">Online</font>{% else %}<font color="red">Offline</font>{% endif %}</p></center></td></tr>
-        </table>
+      <section class="hero">
+        <audio id="theme-music" muted>
+          <source src="{{ url_for('music', filename='Star Wars Main Theme.mp3') }}" type="audio/mpeg">
+        </audio>
+        <h1>WELCOME</h1>
+        <p>to</p>
+        <h2>SWG Source Server</h2>
+        <p>This is the Login frontend for your NGE server</p>
+        <p>Click below to Create a New Account</p>
+        <a href="/addnewuser" class="btn btn-primary">Register an Account</a>
+      </section>
+    </header>
+    <main>
+      <article class="status-section">
+        <h2>Server Status</h2>
+        <div class="status-grid">
+          <div class="status-item">
+            <h3>Login Server</h3>
+            <div class="status-indicator {% if statuses.login %}online{% else %}offline{% endif %}" 
+                 aria-label="Login Server is {{ 'Online' if statuses.login else 'Offline' }}">
+              {{ 'Online' if statuses.login else 'Offline' }}
+            </div>
+          </div>
+          <div class="status-item">
+            <h3>Game Server</h3>
+            <div class="status-indicator {% if statuses.game %}online{% else %}offline{% endif %}" 
+                 aria-label="Game Server is {{ 'Online' if statuses.game else 'Offline' }}">
+              {{ 'Online' if statuses.game else 'Offline' }}
+            </div>
+          </div>
         </div>
-    </div>
+        
+        <div class="online-players">
+          <h3>Online Players</h3>
+          <p class="player-count">{% if online_players is not none %}{{ online_players }}{% else %}N/A{% endif %}</p>
+        </div>
+      </article>
+    </main>
+  </div>
 
-<center>
-    <p><strong><font color='#FFFFFF'> Online Players:</font></strong></p>
-    <em>{% if online_players is not none %}{{ online_players }}{% else %}N/A{% endif %}</em>
-</center>
-</div>
+  <script>
+    // Initialize background music on user interaction (respects autoplay policies)
+    const themeMusic = document.getElementById('theme-music');
+    if (themeMusic) {
+      themeMusic.volume = 0.3;
+      // Attempt to play, catch errors for browsers with autoplay restrictions
+      themeMusic.play().catch(() => {
+        // Autoplay blocked; user can play manually
+      });
+    }
+  </script>
 </body>
 </html>
