@@ -301,10 +301,6 @@ def post_login():
     # Call internal auth logic without making an HTTP request
     # We'll mimic the POST data expected by auth_php
     # Fetch user from DB
-    db_host = os.environ.get("DB_HOST", "127.0.0.1")
-    db_name = os.environ.get("DB_NAME", "swgusers")
-    db_user = os.environ.get("DB_USER", "swg")
-    db_pass = os.environ.get("DB_PASS", "Enterprise1701!")
     # Log attempt (avoid logging raw password)
     logger.info(
         "Login attempt: username=%s, stationID=%s, ip=%s", username, stationID, ip
