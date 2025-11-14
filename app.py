@@ -132,6 +132,7 @@ def add_new_user():
 
 
 @app.route("/newuserpost", methods=["POST"])
+@limiter.limit("3 per 10 minutes")
 def new_user_post():
     # Basic server-side validation mirroring the client-side JS
     useraccountname = request.form.get("useraccountname", "").strip()
