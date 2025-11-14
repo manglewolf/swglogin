@@ -101,6 +101,7 @@ def index():
     user = session.get("username")
 
     # Server/port checks (mirrors fsockopen checks in the PHP)
+    # assumes game server and login server are on same host as mysql
     server = "192.168.204.15"
     ports = {
         "mysql": 3306,
@@ -146,6 +147,10 @@ def new_user_post():
         flash("Password fields must be the same.", "error")
         return redirect(url_for("add_new_user"))
 
+    # Log the registration attempt (do not log the raw password)
+    client_ip = request.remote_addr or ""
+    logger.info("Registration attempt: username=%s accesslevel=%s ip=%s", useraccountname, accesslevel, client_ip)
+
     # Insert into database (use parametrized queries and PHP-compatible hashing)
     try:
         # Check for existing username
@@ -154,6 +159,7 @@ def new_user_post():
                 "SELECT 1 FROM user_account WHERE username = %s", (useraccountname,)
             )
             if cur.fetchone():
+                logger.warning("Registration failed: username exists: %s ip=%s", useraccountname, client_ip)
                 flash("Account name already exists.", "error")
                 return redirect(url_for("add_new_user"))
 
@@ -162,10 +168,12 @@ def new_user_post():
             sql = "INSERT INTO user_account (username, password_hash, password_salt, accesslevel) VALUES (%s, %s, %s, %s)"
             cur.execute(sql, (useraccountname, encrypted, salt, accesslevel))
 
+        logger.info("Registration success: username=%s ip=%s", useraccountname, client_ip)
         flash("Account created successfully.", "success")
         return redirect(url_for("index"))
     except Exception as e:
-        flash(f"Database error: {e}", "error")
+        logger.exception("Database error during registration for username=%s ip=%s: %s", useraccountname, client_ip, e)
+        flash("Database error: an internal error occurred.", "error")
         return redirect(url_for("add_new_user"))
 
 
