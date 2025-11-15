@@ -1,0 +1,34 @@
+[Unit]
+Description=SWG Login Frontend (Flask) - swglogin
+After=network.target
+
+[Service]
+Type=simple
+# User and group the service should run as (adjust as needed)
+User=www-data
+Group=www-data
+
+# Directory where the application resides
+WorkingDirectory=/srv/swglogin
+
+# Load environment variables from this file (optional). Create /etc/default/swglogin
+# with DB_HOST, DB_NAME, DB_USER, DB_PASS, FLASK_SECRET_KEY, etc.
+EnvironmentFile=-/etc/default/swglogin
+
+# Use virtualenv path if provided in the EnvironmentFile as VENV_PATH.
+# Example in /etc/default/swglogin: VENV_PATH=/srv/swglogin/.venv
+# If VENV_PATH is set, the unit will use $VENV_PATH/bin/gunicorn; otherwise
+# it falls back to the system `gunicorn` in PATH.
+ExecStart=/bin/sh -c 'if [ -n "${VENV_PATH}" ]; then exec "${VENV_PATH}"/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 "app:app"; else exec /usr/bin/env gunicorn --workers 3 --bind 0.0.0.0:8000 "app:app"; fi'
+
+# Auto-restart on failure
+Restart=always
+RestartSec=5s
+
+# Logs
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=swglogin
+
+[Install]
+WantedBy=multi-user.target
