@@ -8,6 +8,7 @@ from typing import Optional
 import pymysql
 from flask import (
     Flask,
+    abort,
     flash,
     jsonify,
     redirect,
@@ -20,6 +21,7 @@ from flask import (
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from markupsafe import escape
+from zxcvbn import zxcvbn
 
 from includes.db_connect import cursor, get_connection
 
@@ -221,7 +223,7 @@ def checkhashSSHA(salt: str, password: str) -> str:
     sha = hashlib.sha1((password + salt).encode("utf-8")).digest()
     return base64.b64encode(sha + salt.encode("utf-8")).decode("utf-8")
 
-
+# Authentication endpoint. Used by the game server to validate user credentials.
 @app.route("/auth.php", methods=["POST"])
 @app.route("/auth", methods=["POST"])
 @limiter.limit("5 per minute")
@@ -400,6 +402,120 @@ def post_change_password():
 
     return redirect(url_for("change_password"))
 
+
+def grade_password_complexity(password: str) -> str:
+    """Return a grade for password complexity using zxcvbn."""
+    score = zxcvbn(password)['score']  # 0 (weak) to 4 (strong)
+    if score >= 4:
+        return "Strong"
+    elif score >= 2:
+        return "Medium"
+    else:
+        return "Weak"
+
+@app.route("/admin_user_edit", methods=["GET", "POST"])
+def admin_user_edit():
+    # Only allow superadmin; log access attempts
+    admin_username = session.get("username")
+    client_ip = request.remote_addr or ""
+    if session.get("accesslevel") != "superadmin":
+        logger.warning(
+            "admin_user_edit denied: user=%s ip=%s",
+            admin_username or "<anonymous>",
+            client_ip,
+        )
+        abort(403)
+
+    message = ""
+    complexity = ""
+    # Log GET access to the page
+    if request.method == "GET":
+        logger.info(
+            "admin_user_edit GET by=%s ip=%s",
+            admin_username or "<anonymous>",
+            client_ip,
+        )
+    if request.method == "POST":
+        target_username = request.form.get("username", "").strip()
+        new_password = request.form.get("password", "")
+        new_accesslevel = request.form.get("accesslevel", "standard")
+
+        logger.info(
+            "admin_user_edit POST by=%s ip=%s target=%s requested_accesslevel=%s",
+            admin_username or "<anonymous>",
+            client_ip,
+            target_username,
+            new_accesslevel,
+        )
+
+        complexity = grade_password_complexity(new_password)
+        # Do not log raw password; only log the grade
+        logger.info(
+            "admin_user_edit password complexity grade for target=%s: %s",
+            target_username,
+            complexity,
+        )
+
+        if new_accesslevel not in ("banned", "superadmin", "standard"):
+            message = "Invalid access level."
+            logger.warning(
+                "admin_user_edit invalid access level by=%s ip=%s target=%s accesslevel=%s",
+                admin_username or "<anonymous>",
+                client_ip,
+                target_username,
+                new_accesslevel,
+            )
+        else:
+            try:
+                encrypted, salt = hash_password_php_compat(new_password)
+                with cursor() as cur:
+                    sql = "UPDATE user_account SET password_hash=%s, password_salt=%s, accesslevel=%s WHERE username=%s"
+                    cur.execute(sql, (encrypted, salt, new_accesslevel, target_username))
+                    rows = cur.rowcount
+                if rows == 0:
+                    logger.warning(
+                        "admin_user_edit no rows updated; user may not exist: target=%s by=%s ip=%s",
+                        target_username,
+                        admin_username or "<anonymous>",
+                        client_ip,
+                    )
+                else:
+                    logger.info(
+                        "Superadmin updated user: %s to accesslevel=%s (rows=%s)",
+                        target_username,
+                        new_accesslevel,
+                        rows,
+                    )
+                message = f"User '{target_username}' updated. Password complexity: {complexity}"
+            except Exception as e:
+                logger.exception(
+                    "Superadmin failed to update user: %s by=%s ip=%s",
+                    target_username,
+                    admin_username or "<anonymous>",
+                    client_ip,
+                )
+                message = f"Database error: {e}"
+
+    # Fetch all users for selection
+    try:
+        with cursor() as cur:
+            cur.execute("SELECT username, accesslevel FROM user_account ORDER BY user_id")
+            users = cur.fetchall()
+    except Exception as e:
+        logger.exception(
+            "Failed to fetch users for admin_user_edit by=%s ip=%s: %s",
+            admin_username or "<anonymous>",
+            client_ip,
+            e,
+        )
+        users = []
+
+    return render_template(
+        "admin_user_edit.html",
+        users=users,
+        message=message,
+        complexity=complexity,
+    )
 
 if __name__ == "__main__":
     app.run(debug=True)

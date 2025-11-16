@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin User Edit</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='stylesheet.css') }}">
+</head>
+<body>
+    <header>
+        <h1>Admin: Edit User</h1>
+    </header>
+    {% if message %}
+        <div class="alert">{{ message }}</div>
+    {% endif %}
+    <form method="post">
+        <label for="username">Select User:</label>
+        <select name="username" id="username" required>
+            {% for user in users %}
+                <option value="{{ user.username }}">{{ user.username }} ({{ user.accesslevel }})</option>
+            {% endfor %}
+        </select>
+        <br>
+        <label for="password">New Password:</label>
+        <input type="password" name="password" id="password" required>
+        {% if complexity %}
+            <span>Password complexity: <strong>{{ complexity }}</strong></span>
+        {% endif %}
+        <br>
+        <label for="accesslevel">Access Level:</label>
+        <select name="accesslevel" id="accesslevel">
+            <option value="standard">standard</option>
+            <option value="superadmin">superadmin</option>
+            <option value="banned">banned</option>
+        </select>
+        <br>
+        <button type="submit">Update User</button>
+    </form>
+    <nav>
+        <a href="{{ url_for('index') }}">Back to Index</a>
+    </nav>
+</body>
+</html>
