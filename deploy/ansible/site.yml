@@ -1,0 +1,155 @@
+---
+# Ansible playbook to provision and deploy swglogin
+# Usage:
+#   ansible-playbook -i inventory site.yml -u <ssh_user> --become
+# Variables can be set in inventory/group_vars or passed with -e.
+
+- name: Provision and deploy swglogin
+  hosts: swglogin
+  become: true
+  vars:
+    app_user: swglogin
+    app_group: swglogin
+    app_dir: /srv/swglogin
+    venv_path: /srv/swglogin/venv
+    repo_url: ""  # e.g. https://github.com/manglewolf/swglogin.git (required if use_git_clone=true)
+    repo_version: main
+    use_git_clone: true  # set to false if app is already present on the server
+    flask_secret_key: "change-me"
+    db_host: 127.0.0.1
+    db_name: swgusers
+    db_user: swg
+    db_pass: secret
+    server_name: _  # nginx server_name, set to your domain (e.g. example.com)
+
+  pre_tasks:
+    - name: Ensure apt cache is up to date (Debian/Ubuntu)
+      ansible.builtin.apt:
+        update_cache: true
+      when: ansible_os_family == 'Debian'
+
+  tasks:
+    - name: Install system packages
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-venv
+          - git
+          - nginx
+        state: present
+
+    - name: Ensure group exists
+      ansible.builtin.group:
+        name: "{{ app_group }}"
+        system: true
+
+    - name: Ensure user exists
+      ansible.builtin.user:
+        name: "{{ app_user }}"
+        group: "{{ app_group }}"
+        shell: /usr/sbin/nologin
+        system: true
+        create_home: false
+
+    - name: Create application directory
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ app_user }}"
+        group: "{{ app_group }}"
+        mode: "0750"
+
+    - name: Clone repository (if enabled)
+      ansible.builtin.git:
+        repo: "{{ repo_url }}"
+        dest: "{{ app_dir }}"
+        version: "{{ repo_version }}"
+        force: true
+      when: use_git_clone | bool
+
+    - name: Create virtual environment
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ venv_path }}"
+        creates: "{{ venv_path }}/bin/activate"
+
+    - name: Upgrade pip
+      ansible.builtin.command:
+        cmd: "{{ venv_path }}/bin/pip install --upgrade pip"
+
+    - name: Install Python requirements
+      ansible.builtin.command:
+        cmd: "{{ venv_path }}/bin/pip install -r {{ app_dir }}/requirements.txt"
+
+    - name: Install gunicorn in venv
+      ansible.builtin.command:
+        cmd: "{{ venv_path }}/bin/pip install gunicorn"
+
+    - name: Install swglogin systemd unit
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../swglogin.service"
+        dest: /etc/systemd/system/swglogin.service
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Ensure drop-in directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/swglogin.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Install drop-in override example
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../swglogin.service.d/override.conf"
+        dest: /etc/systemd/system/swglogin.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Render environment file
+      ansible.builtin.template:
+        src: templates/swglogin.env.j2
+        dest: /etc/default/swglogin
+        owner: root
+        group: "{{ app_group }}"
+        mode: "0640"
+
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Enable and start swglogin
+      ansible.builtin.systemd:
+        name: swglogin.service
+        enabled: true
+        state: started
+
+    - name: Install nginx site config
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../nginx_swglogin.conf"
+        dest: /etc/nginx/sites-available/swglogin
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable nginx site
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/swglogin
+        dest: /etc/nginx/sites-enabled/swglogin
+        state: link
+        force: true
+
+    - name: Test nginx configuration
+      ansible.builtin.command:
+        cmd: nginx -t
+      register: nginx_test
+      changed_when: false
+
+    - name: Reload nginx
+      ansible.builtin.service:
+        name: nginx
+        state: reloaded
+
+  handlers: []

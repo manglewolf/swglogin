@@ -1,0 +1,26 @@
+# Example inventory for swglogin deployment
+# Rename to `inventory` and update hostnames/IPs and variables.
+
+[swglogin]
+web1 ansible_host=YOUR_SERVER_IP_OR_NAME
+
+[swglogin:vars]
+# SSH user to connect as (must have sudo privileges)
+ansible_user=ubuntu
+
+# Deployment variables (can also be provided via -e or group_vars)
+app_user=swglogin
+app_group=swglogin
+app_dir=/srv/swglogin
+venv_path=/srv/swglogin/venv
+use_git_clone=true
+repo_url=https://github.com/YOUR_ORG/swglogin.git
+repo_version=main
+flask_secret_key=replace-with-a-strong-random-secret
+server_name=example.com
+
+# Database settings
+db_host=127.0.0.1
+db_name=swgusers
+db_user=swg
+db_pass=secret
