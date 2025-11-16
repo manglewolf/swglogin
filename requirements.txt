@@ -2,3 +2,5 @@ Flask>=2.0
 markupsafe
 pymysql
 Flask-Limiter>=2.0
+prometheus-client>=0.19
+zxcvbn>=4.4.0

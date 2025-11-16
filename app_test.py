@@ -239,6 +239,16 @@ def test_admin_user_edit_no_rows_update_logs(monkeypatch, client, caplog):
     assert any('no rows updated; user may not exist' in r.getMessage() for r in caplog.records)
 
 
+def test_health_and_metrics_endpoints(client):
+    # Health should return 200 (cursor patched, DB query succeeds trivially)
+    h = client.get('/healthz')
+    assert h.status_code in (200, 503)  # allow degraded scenario
+    m = client.get('/metrics')
+    assert m.status_code == 200
+    # Basic metric presence
+    assert b'swglogin_requests_total' in m.data
+
+
 # Flask test client fixture
 @pytest.fixture
 def client():

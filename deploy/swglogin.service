@@ -15,11 +15,10 @@ WorkingDirectory=/srv/swglogin
 # with DB_HOST, DB_NAME, DB_USER, DB_PASS, FLASK_SECRET_KEY, etc.
 EnvironmentFile=-/etc/default/swglogin
 
-# Use virtualenv path if provided in the EnvironmentFile as VENV_PATH.
-# Example in /etc/default/swglogin: VENV_PATH=/srv/swglogin/.venv
-# If VENV_PATH is set, the unit will use $VENV_PATH/bin/gunicorn; otherwise
-# it falls back to the system `gunicorn` in PATH.
-ExecStart=/bin/sh -c 'if [ -n "${VENV_PATH}" ]; then exec "${VENV_PATH}"/bin/gunicorn --workers 3 --bind 0.0.0.0:8000 "app:app"; else exec /usr/bin/env gunicorn --workers 3 --bind 0.0.0.0:8000 "app:app"; fi'
+# Use deployment script which handles virtualenv activation, logging and tunables.
+# The script consults APP_DIR, VENV_PATH, WORKERS, BIND_ADDRESS, etc. (see deploy/run_gunicorn.sh)
+# Ensure the script is present at /srv/swglogin/deploy/run_gunicorn.sh and executable (chmod +x).
+ExecStart=/srv/swglogin/deploy/run_gunicorn.sh
 
 # Auto-restart on failure
 Restart=always

@@ -17,13 +17,20 @@ from flask import (
     send_from_directory,
     session,
     url_for,
+    Response,
+    g,
 )
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from markupsafe import escape
-from zxcvbn import zxcvbn
+try:
+    from zxcvbn import zxcvbn as zx_analyze
+except Exception:
+    zx_analyze = None
 
 from includes.db_connect import cursor, get_connection
+import time
+from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
 app = Flask(__name__)
 # Load secret key from environment for production; fallback to a generated token for dev.
@@ -36,6 +43,27 @@ root = pathlib.Path(__file__).resolve().parent
 logs_dir = root / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger("swglogin")
+
+# Prometheus metrics definitions
+REQUEST_LATENCY = Histogram(
+    "swglogin_request_latency_seconds",
+    "Request latency",
+    ["method", "endpoint"],
+)
+REQUEST_COUNT = Counter(
+    "swglogin_requests_total",
+    "HTTP requests",
+    ["method", "endpoint", "http_status"],
+)
+LOGIN_ATTEMPTS = Counter(
+    "swglogin_login_attempts_total", "Login attempts", ["result"]
+)
+AUTH_ATTEMPTS = Counter(
+    "swglogin_auth_attempts_total", "Auth attempts", ["result"]
+)
+REGISTRATION_ATTEMPTS = Counter(
+    "swglogin_registration_attempts_total", "Registration attempts", ["result"]
+)
 
 # Configure rate limiter: default key is remote address (always create so `limiter` is bound)
 limiter = Limiter(
@@ -55,6 +83,24 @@ if not logger.handlers:
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.INFO)
+
+
+@app.before_request
+def _start_timer():
+    g._start_time = time.time()
+
+
+@app.after_request
+def _record_metrics(response: Response):
+    try:
+        duration = time.time() - getattr(g, "_start_time", time.time())
+        endpoint = request.endpoint or "unknown"
+        REQUEST_LATENCY.labels(request.method, endpoint).observe(duration)
+        REQUEST_COUNT.labels(request.method, endpoint, response.status_code).inc()
+    except Exception:
+        # Never break the response due to metrics errors
+        pass
+    return response
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
@@ -153,7 +199,12 @@ def new_user_post():
 
     # Log the registration attempt (do not log the raw password)
     client_ip = request.remote_addr or ""
-    logger.info("Registration attempt: username=%s accesslevel=%s ip=%s", useraccountname, accesslevel, client_ip)
+    logger.info(
+        "Registration attempt: username=%s accesslevel=%s ip=%s",
+        useraccountname,
+        accesslevel,
+        client_ip,
+    )
 
     # Insert into database (use parametrized queries and PHP-compatible hashing)
     try:
@@ -163,7 +214,12 @@ def new_user_post():
                 "SELECT 1 FROM user_account WHERE username = %s", (useraccountname,)
             )
             if cur.fetchone():
-                logger.warning("Registration failed: username exists: %s ip=%s", useraccountname, client_ip)
+                logger.warning(
+                    "Registration failed: username exists: %s ip=%s",
+                    useraccountname,
+                    client_ip,
+                )
+                REGISTRATION_ATTEMPTS.labels(result="exists").inc()
                 flash("Account name already exists.", "error")
                 return redirect(url_for("add_new_user"))
 
@@ -172,11 +228,15 @@ def new_user_post():
             sql = "INSERT INTO user_account (username, password_hash, password_salt, accesslevel) VALUES (%s, %s, %s, %s)"
             cur.execute(sql, (useraccountname, encrypted, salt, accesslevel))
 
-        logger.info("Registration success: username=%s ip=%s", useraccountname, client_ip)
+        logger.info(
+            "Registration success: username=%s ip=%s", useraccountname, client_ip
+        )
+        REGISTRATION_ATTEMPTS.labels(result="success").inc()
         flash("Account created successfully.", "success")
         return redirect(url_for("index"))
     except Exception as e:
         logger.exception("Database error during registration for username=%s ip=%s: %s", useraccountname, client_ip, e)
+        REGISTRATION_ATTEMPTS.labels(result="error").inc()
         flash("Database error: an internal error occurred.", "error")
         return redirect(url_for("add_new_user"))
 
@@ -249,6 +309,7 @@ def auth_php():
 
     if not user:
         logger.warning("Auth failed: user not found: %s", username)
+        AUTH_ATTEMPTS.labels(result="not_found").inc()
         return (
             jsonify({"message": "Account does not exist or password was incorrect"}),
             401,
@@ -256,6 +317,7 @@ def auth_php():
 
     if user.get("accesslevel") == "banned":
         logger.info("Auth rejected: banned account %s", username)
+        AUTH_ATTEMPTS.labels(result="banned").inc()
         return (
             jsonify(
                 {
@@ -276,9 +338,11 @@ def auth_php():
 
     if hashtest == stored_hash:
         logger.info("Auth success for username=%s", username)
+        AUTH_ATTEMPTS.labels(result="success").inc()
         return jsonify({"message": "success"}), 200
     else:
         logger.warning("Auth failed: bad password for username=%s", username)
+        AUTH_ATTEMPTS.labels(result="bad_password").inc()
         return (
             jsonify({"message": "Account does not exist or password was incorrect"}),
             401,
@@ -330,12 +394,14 @@ def post_login():
 
     if not user:
         logger.warning("Login failed: user not found: %s", username)
+        LOGIN_ATTEMPTS.labels(result="not_found").inc()
         flash("Login failed: incorrect username or password", "error")
         return redirect(url_for("form_login"))
 
     # Check for banned account
     if user.get("accesslevel") == "banned":
         logger.info("Login rejected: banned account %s", username)
+        LOGIN_ATTEMPTS.labels(result="banned").inc()
         flash("Your account has been banned. Contact CSR staff for appeals.", "error")
         return redirect(url_for("form_login"))
 
@@ -353,6 +419,7 @@ def post_login():
         session["user"] = user.get("username")
         session["accesslevel"] = user.get("accesslevel")
         logger.info("Login success for username=%s", username)
+        LOGIN_ATTEMPTS.labels(result="success").inc()
         # Redirect to saved urlredirect or index
         redirect_target = session.pop("urlredirect", None)
         if redirect_target:
@@ -361,6 +428,7 @@ def post_login():
 
     # Failed password
     logger.warning("Login failed: bad password for username=%s", username)
+    LOGIN_ATTEMPTS.labels(result="bad_password").inc()
     flash("Login failed: incorrect username or password", "error")
     return redirect(url_for("form_login"))
 
@@ -404,14 +472,36 @@ def post_change_password():
 
 
 def grade_password_complexity(password: str) -> str:
-    """Return a grade for password complexity using zxcvbn."""
-    score = zxcvbn(password)['score']  # 0 (weak) to 4 (strong)
+    """Return a grade for password complexity using zxcvbn if available, else heuristic."""
+    try:
+        if zx_analyze is not None:
+            score = zx_analyze(password)["score"]  # 0..4
+            if score >= 4:
+                return "Strong"
+            if score >= 2:
+                return "Medium"
+            return "Weak"
+    except Exception:
+        pass
+    # Fallback heuristic
+    import re
+
+    score = 0
+    if len(password) >= 12:
+        score += 1
+    if re.search(r"[A-Z]", password):
+        score += 1
+    if re.search(r"[a-z]", password):
+        score += 1
+    if re.search(r"\d", password):
+        score += 1
+    if re.search(r"[^\w\s]", password):
+        score += 1
     if score >= 4:
         return "Strong"
-    elif score >= 2:
+    if score >= 2:
         return "Medium"
-    else:
-        return "Weak"
+    return "Weak"
 
 @app.route("/admin_user_edit", methods=["GET", "POST"])
 def admin_user_edit():
@@ -516,6 +606,30 @@ def admin_user_edit():
         message=message,
         complexity=complexity,
     )
+
+
+@app.route("/healthz")
+def healthz():
+    # Basic health: attempt trivial DB query and return status JSON
+    db_ok = False
+    try:
+        with cursor() as cur:
+            cur.execute("SELECT 1")
+        db_ok = True
+    except Exception:
+        db_ok = False
+    status = {
+        "status": "ok" if db_ok else "degraded",
+        "db": "up" if db_ok else "error",
+    }
+    http_code = 200 if db_ok else 503
+    return jsonify(status), http_code
+
+
+@app.route("/metrics")
+def metrics():
+    # Expose Prometheus metrics
+    return Response(generate_latest(), mimetype=CONTENT_TYPE_LATEST)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -7,6 +7,7 @@ Files
 -----
 - `swglogin.service` - systemd unit file to run the Flask app via gunicorn.
 - `nginx_swglogin.conf` - example Nginx site config to reverse-proxy to gunicorn and serve static files.
+- `run_gunicorn.sh` - deployment script wrapping gunicorn (virtualenv activation, logs, tunables).
 
 Quick setup
 -----------
@@ -59,6 +60,57 @@ Notes
 - The systemd service uses `VENV_PATH` from `/etc/default/swglogin` if provided; otherwise it will use the system `gunicorn` found in PATH.
 - For production, run the service under a dedicated, non-root user and secure the environment file (e.g. `chmod 640 /etc/default/swglogin`).
 - Consider fronting the app with Nginx and enabling TLS (Let's Encrypt) for secure connections.
+ - You can override run-time settings without editing the unit using `systemctl set-environment` or a drop-in.
+ 
+Local development (Windows PowerShell)
+-------------------------------------
+```powershell
+cd swglogin
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+$env:FLASK_SECRET_KEY = "dev_local_secret_change_me"
+python app.py  # Runs Flask dev server (debug=True currently)
+```
+
+Gunicorn script usage (Linux)
+-----------------------------
+The `deploy/run_gunicorn.sh` script centralizes production settings:
+```bash
+chmod +x deploy/run_gunicorn.sh
+WORKERS=4 BIND_ADDRESS=127.0.0.1:8000 LOG_LEVEL=info ./deploy/run_gunicorn.sh
+```
+Environment variables (defaults shown):
+```
+APP_DIR=/srv/swglogin
+VENV_PATH=/srv/swglogin/venv
+BIND_ADDRESS=127.0.0.1:8000
+WORKERS=4
+WORKER_CLASS=sync
+TIMEOUT=120
+LOG_LEVEL=info
+```
+
+Systemd + overrides
+-------------------
+The unit now calls the script directly:
+```
+ExecStart=/srv/swglogin/deploy/run_gunicorn.sh
+```
+Set temporary overrides (persist until daemon reload or unset):
+```bash
+sudo systemctl set-environment WORKERS=6 LOG_LEVEL=warning BIND_ADDRESS=127.0.0.1:9000
+sudo systemctl restart swglogin.service
+```
+Show current environment overrides:
+```bash
+systemctl show swglogin.service | grep Environment=
+```
+Clear overrides:
+```bash
+sudo systemctl unset-environment WORKERS LOG_LEVEL BIND_ADDRESS
+sudo systemctl restart swglogin.service
+```
  
 Drop-in overrides and service-user setup
 ---------------------------------------
@@ -90,3 +142,16 @@ sudo chmod -R 750 /srv/swglogin
 The script also creates a placeholder `/etc/default/swglogin` and sets `chmod 640` on it so only root and the service group can read it. Review the script before running in production and adjust paths, user/group names, and permission policy to match your site's security policies.
 
 If you'd like, I can also add an Ansible playbook or a more complete system provisioning script that includes virtualenv creation, pip installs, and service start/monitoring.
+
+Hardening / Next Steps
+----------------------
+- **CSRF Protection**: Integrate Flask-WTF or custom token for all modifying POST forms.
+- **Password Hash Migration**: Transition from legacy SHA1+salt to bcrypt or Argon2 (store versioned hashes; rehash on login).
+- **Session Security**: Set `SESSION_COOKIE_SECURE`, `SESSION_COOKIE_HTTPONLY`, `PERMANENT_SESSION_LIFETIME`; consider server-side session storage (Redis).
+- **Rate Limiter Backend**: Switch `storage_uri` to Redis (`redis://host:port/0`) for multi-process resilience.
+- **Structured Logging**: Output JSON (e.g. via `python-json-logger`) and ship to a log aggregation service.
+- **Monitoring**: Add health endpoint, Prometheus metrics, uptime checks.
+- **Database Pooling**: Use connection pooling or a library wrapper to reduce connect overhead.
+- **Content Security Policy (CSP)**: Add headers via Nginx or Flask to mitigate XSS.
+- **Automated TLS**: Integrate Certbot + renewal timer for Nginx.
+
