@@ -130,6 +130,115 @@ def test_post_login_success(monkeypatch, client):
     assert r.status_code in (302, 200)
 
 
+def test_admin_user_edit_denied_logs_warning(monkeypatch, client, caplog):
+    caplog.set_level('INFO', logger='swglogin')
+    # standard user should be denied
+    with client.session_transaction() as sess:
+        sess['username'] = 'eve'
+        sess['accesslevel'] = 'standard'
+    resp = client.get('/admin_user_edit')
+    assert resp.status_code == 403
+    assert any('admin_user_edit denied' in r.getMessage() for r in caplog.records)
+
+
+def test_admin_user_edit_get_logs_access(monkeypatch, client, caplog):
+    caplog.set_level('INFO', logger='swglogin')
+    with client.session_transaction() as sess:
+        sess['username'] = 'root'
+        sess['accesslevel'] = 'superadmin'
+    resp = client.get('/admin_user_edit')
+    assert resp.status_code == 200
+    assert any('admin_user_edit GET' in r.getMessage() for r in caplog.records)
+
+
+def test_admin_user_edit_invalid_access_level_logs(monkeypatch, client, caplog):
+    caplog.set_level('INFO', logger='swglogin')
+    with client.session_transaction() as sess:
+        sess['username'] = 'root'
+        sess['accesslevel'] = 'superadmin'
+    resp = client.post('/admin_user_edit', data={
+        'username': 'targetuser',
+        'password': 'SomePass123!$',
+        'accesslevel': 'invalid'
+    })
+    # Should return 200 (page re-render) and log invalid access level
+    assert resp.status_code == 200
+    assert any('invalid access level' in r.getMessage() for r in caplog.records)
+
+
+def test_admin_user_edit_success_update_logs(monkeypatch, client, caplog):
+    caplog.set_level('INFO', logger='swglogin')
+
+    class UpdatingCursor(FakeCursor):
+        def __init__(self, responses=None, rows=1):
+            super().__init__(responses)
+            self.rowcount = 0
+            self._rows_target = rows
+
+        def execute(self, sql, params=None):
+            self._last_query = sql
+            # Simulate update affecting rows
+            if 'update user_account set password_hash' in sql.lower():
+                self.rowcount = self._rows_target
+
+    @contextmanager
+    def updating_cursor_context(rows=1):
+        cur = UpdatingCursor(rows=rows)
+        try:
+            yield cur
+        finally:
+            cur.close()
+
+    # Monkeypatch cursor to return 1 updated row
+    monkeypatch.setattr(app_module, 'cursor', lambda conn=None: updating_cursor_context(rows=1))
+    with client.session_transaction() as sess:
+        sess['username'] = 'root'
+        sess['accesslevel'] = 'superadmin'
+    resp = client.post('/admin_user_edit', data={
+        'username': 'updateduser',
+        'password': 'BetterPass123!$',
+        'accesslevel': 'standard'
+    })
+    assert resp.status_code == 200
+    assert any('Superadmin updated user: updateduser' in r.getMessage() for r in caplog.records)
+    assert any('password complexity grade' in r.getMessage() for r in caplog.records)
+
+
+def test_admin_user_edit_no_rows_update_logs(monkeypatch, client, caplog):
+    caplog.set_level('INFO', logger='swglogin')
+
+    class UpdatingCursor(FakeCursor):
+        def __init__(self, responses=None, rows=0):
+            super().__init__(responses)
+            self.rowcount = 0
+            self._rows_target = rows
+
+        def execute(self, sql, params=None):
+            self._last_query = sql
+            if 'update user_account set password_hash' in sql.lower():
+                self.rowcount = self._rows_target
+
+    @contextmanager
+    def updating_cursor_context(rows=0):
+        cur = UpdatingCursor(rows=rows)
+        try:
+            yield cur
+        finally:
+            cur.close()
+
+    monkeypatch.setattr(app_module, 'cursor', lambda conn=None: updating_cursor_context(rows=0))
+    with client.session_transaction() as sess:
+        sess['username'] = 'root'
+        sess['accesslevel'] = 'superadmin'
+    resp = client.post('/admin_user_edit', data={
+        'username': 'missinguser',
+        'password': 'SomePass123!$',
+        'accesslevel': 'standard'
+    })
+    assert resp.status_code == 200
+    assert any('no rows updated; user may not exist' in r.getMessage() for r in caplog.records)
+
+
 # Flask test client fixture
 @pytest.fixture
 def client():
