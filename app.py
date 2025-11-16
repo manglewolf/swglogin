@@ -95,6 +95,7 @@ def get_online_player_count() -> Optional[int]:
 
 
 @app.route("/")
+@app.route("/index")
 @app.route("/index.php")
 def index():
     # Session username (mirrors PHP session_start + $_SESSION['user'])
@@ -222,6 +223,7 @@ def checkhashSSHA(salt: str, password: str) -> str:
 
 
 @app.route("/auth.php", methods=["POST"])
+@app.route("/auth", methods=["POST"])
 @limiter.limit("5 per minute")
 def auth_php():
     # Accepts POST fields: user_name, user_password, ip, stationID
