@@ -32,6 +32,13 @@ from includes.db_connect import cursor, get_connection
 import time
 from prometheus_client import Counter, Histogram, generate_latest, CONTENT_TYPE_LATEST
 
+# Load environment variables from .env file if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed, skip
+
 app = Flask(__name__)
 # Load secret key from environment for production; fallback to a generated token for dev.
 app.secret_key = os.environ.get(
@@ -76,8 +83,12 @@ limiter = Limiter(
 )
 
 if not logger.handlers:
+    log_max_bytes = int(os.environ.get("LOG_MAX_MB", 10)) * 1024 * 1024  # Default 10MB
+    log_backup_count = int(os.environ.get("LOG_BACKUP_COUNT", 10))  # Default 10 files
     handler = RotatingFileHandler(
-        logs_dir / "auth.log", maxBytes=5 * 1024 * 1024, backupCount=3
+        logs_dir / "auth.log", 
+        maxBytes=log_max_bytes,
+        backupCount=log_backup_count
     )
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     handler.setFormatter(formatter)

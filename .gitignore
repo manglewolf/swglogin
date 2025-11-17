@@ -39,6 +39,7 @@ htmlcov/
 # dotenv
 .env
 .env.*
+!.env.example
 
 # VSCode
 .vscode/

@@ -4,3 +4,4 @@ pymysql
 Flask-Limiter>=2.0
 prometheus-client>=0.19
 zxcvbn>=4.4.0
+python-dotenv>=1.0.0
