@@ -2,7 +2,7 @@ import logging
 import os
 import pathlib
 import socket
-from logging.handlers import RotatingFileHandler
+from logging.handlers import RotatingFileHandler as RFH
 from typing import Optional
 
 import pymysql
@@ -50,6 +50,11 @@ root = pathlib.Path(__file__).resolve().parent
 logs_dir = root / "logs"
 logs_dir.mkdir(parents=True, exist_ok=True)
 logger = logging.getLogger("swglogin")
+ 
+# Set logger level from environment (default to ERROR)
+_log_level_name = os.environ.get("LOG_LEVEL", "ERROR").upper()
+_log_level_value = getattr(logging, _log_level_name, logging.ERROR)
+logger.setLevel(_log_level_value)
 
 # Prometheus metrics definitions
 REQUEST_LATENCY = Histogram(
@@ -85,15 +90,15 @@ limiter = Limiter(
 if not logger.handlers:
     log_max_bytes = int(os.environ.get("LOG_MAX_MB", 10)) * 1024 * 1024  # Default 10MB
     log_backup_count = int(os.environ.get("LOG_BACKUP_COUNT", 10))  # Default 10 files
-    handler = RotatingFileHandler(
+    handler = RFH(
         logs_dir / "auth.log", 
         maxBytes=log_max_bytes,
         backupCount=log_backup_count
     )
     formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
     handler.setFormatter(formatter)
+    handler.setLevel(_log_level_value)
     logger.addHandler(handler)
-    logger.setLevel(logging.INFO)
 
 
 @app.before_request

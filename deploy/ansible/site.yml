@@ -21,6 +21,10 @@
     db_user: swg
     db_pass: secret
     server_name: _  # nginx server_name, set to your domain (e.g. example.com)
+    # Application logging controls
+    log_level: ERROR           # DEBUG | INFO | WARNING | ERROR | CRITICAL
+    log_max_mb: 10
+    log_backup_count: 10
 
   pre_tasks:
     - name: Ensure apt cache is up to date (Debian/Ubuntu)

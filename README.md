@@ -48,8 +48,9 @@ Environment variables
 	- `DB_NAME` - database name (default: swgusers)
 	- `DB_USER` - database username (default: root)
 	- `DB_PASS` - database password (default: swg)
-	- `LOG_MAX_MB` - max log file size in bytes before rotation (default: 10485760 = 10MB)
+	- `LOG_MAX_MB` - max log file size in MB before rotation (default: 10)
 	- `LOG_BACKUP_COUNT` - number of rotated log files to keep (default: 10)
+	- `LOG_LEVEL` - logging level for the app (default: ERROR). Accepted values: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 PowerShell example (set variables for current session):
 
@@ -59,8 +60,9 @@ $env:DB_HOST = '127.0.0.1'
 $env:DB_NAME = 'swgusers'
 $env:DB_USER = 'swg'
 $env:DB_PASS = 'Enterprise1701!'
-$env:LOG_MAX_MB = '20971520'  # 20MB
+$env:LOG_MAX_MB = '20'  # 20 MB
 $env:LOG_BACKUP_COUNT = '30'
+$env:LOG_LEVEL = 'WARNING'
 python app.py
 ```
 

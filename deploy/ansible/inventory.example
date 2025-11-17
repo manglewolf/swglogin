@@ -24,3 +24,8 @@ db_host=127.0.0.1
 db_name=swgusers
 db_user=swg
 db_pass=secret
+
+# Application logging
+log_level=ERROR          # DEBUG | INFO | WARNING | ERROR | CRITICAL
+log_max_mb=10            # log rotation size per file (MB)
+log_backup_count=10      # number of rotated files to retain

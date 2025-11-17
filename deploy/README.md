@@ -24,7 +24,7 @@ pip install -r requirements.txt
 pip install gunicorn
 ```
 
-2. Create the environment file `/etc/default/swglogin` with application secrets and optionally VENV_PATH:
+2. Create the environment file `/etc/default/swglogin` with application secrets and optionally VENV_PATH. You can also control application logging here via `LOG_LEVEL`:
 
 ```
 # /etc/default/swglogin
@@ -33,6 +33,10 @@ DB_HOST='127.0.0.1'
 DB_NAME='swgusers'
 DB_USER='swg'
 DB_PASS='secret'
+# Application logging (defaults if omitted: LOG_LEVEL=ERROR, LOG_MAX_MB=10, LOG_BACKUP_COUNT=10)
+LOG_LEVEL='ERROR'            # DEBUG | INFO | WARNING | ERROR | CRITICAL
+LOG_MAX_MB='10'              # per-file size before rotation
+LOG_BACKUP_COUNT='10'        # number of rotated files to keep
 # Optional: point to your virtualenv location (recommended)
 VENV_PATH=/srv/swglogin/.venv
 ```
@@ -61,6 +65,7 @@ Notes
 - For production, run the service under a dedicated, non-root user and secure the environment file (e.g. `chmod 640 /etc/default/swglogin`).
 - Consider fronting the app with Nginx and enabling TLS (Let's Encrypt) for secure connections.
  - You can override run-time settings without editing the unit using `systemctl set-environment` or a drop-in.
+ - The application log file is written to `logs/auth.log` (rotated). Control verbosity via `LOG_LEVEL` as above.
  
 Local development (Windows PowerShell)
 -------------------------------------
@@ -91,6 +96,26 @@ TIMEOUT=120
 LOG_LEVEL=info
 ```
 
+Logging levels: Gunicorn vs App
+-------------------------------
+- `LOG_LEVEL` in the Gunicorn script controls Gunicorn's own logs (workers, requests) written to `logs/gunicorn-*.log`.
+- `LOG_LEVEL` in the application environment controls the Flask app logger (`swglogin`), written to `logs/auth.log` (rotated).
+
+Examples:
+```bash
+# Set Gunicorn verbosity only
+LOG_LEVEL=warning ./deploy/run_gunicorn.sh
+
+# Set application verbosity via systemd environment
+sudo systemctl set-environment LOG_LEVEL=ERROR   # app logger level
+sudo systemctl restart swglogin.service
+
+# Or persist in /etc/default/swglogin (managed by Ansible/template)
+LOG_LEVEL='ERROR'            # app logger level
+LOG_MAX_MB='10'
+LOG_BACKUP_COUNT='10'
+```
+
 Systemd + overrides
 -------------------
 The unit now calls the script directly:
@@ -100,6 +125,8 @@ ExecStart=/srv/swglogin/deploy/run_gunicorn.sh
 Set temporary overrides (persist until daemon reload or unset):
 ```bash
 sudo systemctl set-environment WORKERS=6 LOG_LEVEL=warning BIND_ADDRESS=127.0.0.1:9000
+# App logging level (controls Flask app logger)
+sudo systemctl set-environment LOG_LEVEL=INFO
 sudo systemctl restart swglogin.service
 ```
 Show current environment overrides:
